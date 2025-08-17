@@ -1,0 +1,56 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+*.eggs/
+
+# Virtual environment
+.venv/
+env/
+venv/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+*.out
+*.err
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Coverage / Testing
+.coverage
+.tox/
+.pytest_cache/
+htmlcov/
+
+# Build artifacts
+dist/
+build/
+*.egg
+*.egg-info/
+
+# FastAPI / Uvicorn
+*.db
+*.sqlite3
+*.sqlite
+*.pid
+
+# Environment variables
+.env
+.env.*
+*.secret
+
+# Migrations (if using Alembic, keep versions if needed)
+alembic/versions/*.pyc
+alembic/versions/*.pyo
