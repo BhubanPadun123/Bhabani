@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException,Query
 from sqlalchemy.orm import Session
 from models.class_model import subject_model,class_model,topic_model
 from database import get_db
 from utils.types import create_topic_type,update_topic_type
+from typing import List,Dict,Any
 
 
 route = APIRouter(
@@ -32,7 +33,7 @@ def create_topics(data: create_topic_type, db: Session = Depends(get_db)):
         )
     
     # 3️⃣ Create new topic
-    new_topic = topic_model(subject_ref=data.subject_ref, topic_name=data.topic_name)
+    new_topic = topic_model(subject_ref=data.subject_ref, topic_name=data.topic_name,thumbnail_url=data.thumbnail_url)
     db.add(new_topic)
     db.commit()
     db.refresh(new_topic)
@@ -80,3 +81,27 @@ def get_all_topic(subject_id:int,db:Session=Depends(get_db)):
         return []
     return results
     
+@route.get("/subject/topics")
+def get_all_subject_topics(
+    subjectIds: List[int] = Query(...), 
+    db: Session = Depends(get_db)
+) -> Dict[int, List[Dict[str, Any]]]:
+    
+    result: Dict[int, List[Dict[str, Any]]] = {}
+
+    for subject_id in subjectIds:
+        topics = (
+            db.query(topic_model)
+            .join(subject_model, topic_model.subject_ref == subject_model.id)
+            .filter(topic_model.subject_ref == subject_id)
+            .all()
+        )
+        # Convert SQLAlchemy objects to dicts
+        result[subject_id] = [
+            {col.name: getattr(topic, col.name) for col in topic.__table__.columns}
+            for topic in topics
+        ]
+
+    return result
+    
+

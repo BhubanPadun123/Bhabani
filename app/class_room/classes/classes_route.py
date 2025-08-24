@@ -18,7 +18,7 @@ def create_classes(data: create_class_type, db: Session = Depends(get_db)):
     if exist_classes:
         raise HTTPException(status_code=401, detail=f"Class already exists with name {data.class_name}")
     
-    new_class = class_model(class_name=data.class_name)
+    new_class = class_model(class_name=data.class_name,category=data.catagory)
     db.add(new_class)
     db.commit()
     db.refresh(new_class)
@@ -37,6 +37,7 @@ def delete_class(id:int,db:Session=Depends(get_db)):
 @route.get("/all")
 def get_all_classes(db: Session = Depends(get_db)):
     classes = db.query(class_model).all()
+    
     
     if not classes:
         raise HTTPException(status_code=404, detail="No classes found")

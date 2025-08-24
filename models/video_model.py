@@ -11,6 +11,7 @@ class video_model(Base):
     sl_no = Column(Integer)
     video_url = Column(JSON)
     description = Column(String(500))
+    thumbnailUrl = Column(String(500)) 
 class video_response_model(Base):
     __tablename__ = "video_response"
     id = Column(Integer,primary_key=True,index=True)

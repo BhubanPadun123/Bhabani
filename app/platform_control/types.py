@@ -5,3 +5,6 @@ from fastapi import Query
 
 class create_catagory_type(BaseModel):
     catagory_name:str
+class create_user_platform_type(BaseModel):
+    user_ref:int
+    catagory_ref:int

@@ -11,6 +11,7 @@ from app.class_room.subjects.subject_route import route as subject_route
 from app.class_room.topics.topic_route import route as topic_route
 from app.class_room.video.video_route import route as video_route
 from app.business_control.sales.sales_routes import routes as sales_rotes
+from app.platform_control.route import routes as platform_routes
 
 app = FastAPI()
 Base.metadata.create_all(bind=engine)
@@ -33,3 +34,4 @@ app.include_router(subject_route,prefix="/route")
 app.include_router(topic_route,prefix="/route")
 app.include_router(video_route,prefix="/route")
 app.include_router(sales_rotes,prefix="/route")
+app.include_router(platform_routes,prefix="/route")

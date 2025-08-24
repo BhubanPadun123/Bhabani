@@ -19,6 +19,7 @@ class update_user_role_type(BaseModel):
 
 class create_class_type(BaseModel):
     class_name:str
+    catagory:str = "academic"
 class update_class_name_type(BaseModel):
     id:int
     new_name:str
@@ -29,6 +30,7 @@ class create_subject_type(BaseModel):
 class create_topic_type(BaseModel):
     subject_ref:int
     topic_name:str
+    thumbnail_url:str
 class update_topic_type(BaseModel):
     subject_ref:int
     class_ref:int
@@ -49,6 +51,7 @@ class video_create_type(BaseModel):
     sl_no:int
     video_url:List[str]
     description:str
+    thumbnailUrl:str
 
 class subject_video_query_type(BaseModel):
     class_ref:int = Query(...)

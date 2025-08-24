@@ -45,14 +45,12 @@ def create_new_sale(data:create_sale_type,db:Session = Depends(get_db)):
 @routes.post('/product')
 def sale_products(data:sale_product_type,db:Session = Depends(get_db)):
     sale_ref = db.query(sales_model).filter(sales_model.id == data.sale_id).first()
-    is_subject_exist = db.query(sale_product_model).filter(sale_product_model.subject_ref == data.subject_ref).first()
 
-    if is_subject_exist:
-        raise HTTPException(status_code=204,detail=f"Subject is alrady subscribed by you!")
     if not sale_ref:
         raise HTTPException(status_code=401,detail=f"sale reference is not found")
     
     new_product_sale = sale_product_model(sale_id=data.sale_id,class_ref=data.class_ref,subject_ref=data.subject_ref)
+    
     db.add(new_product_sale)
     db.commit()
     db.refresh(new_product_sale)
@@ -70,7 +68,7 @@ def get_customer_product(customer_ref:int,db:Session=Depends(get_db)):
                 ).all()
     
     if not result:
-        raise HTTPException(status_code=404,detail=f"User does not have any course subscription")
+        return []
     
     final_list = []
     for sale,product,subject in result:

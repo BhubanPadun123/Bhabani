@@ -7,7 +7,7 @@ from supabase import create_client,Client
 from sqlalchemy.orm import Session
 import tempfile,shutil,os,subprocess
 from utils.cloudinary import cloudinary
-from typing import List
+from typing import List,Dict,Any
 import uuid
 import math
 import json
@@ -103,7 +103,8 @@ def create_video(data:video_create_type,db:Session = Depends(get_db)):
         topic_ref=data.topic_ref,
         sl_no = data.sl_no,
         video_url = data.video_url,
-        description = data.description
+        description = data.description,
+        thumbnailUrl = data.thumbnailUrl
     )
     db.add(new_video)
     db.commit()
@@ -166,4 +167,49 @@ def add_video_in_topic(data:add_topic_video_type,db:Session=Depends(get_db)):
     video.video_url = data.video_url
     db.commit()
     return {"message":"Video added to the same topic"}
+
+@route.get("/initial_videos")
+def get_initial_videos(
+    ids: List[int] = Query(...),
+    db: Session = Depends(get_db)
+) -> Dict[int, List[Any]]:
+    result: Dict[int, List[Any]] = {}
+
+    for class_id in ids:
+        videos = (
+            db.query(topic_model)
+            .join(subject_model, subject_model.id == topic_model.subject_ref)
+            .join(class_model, class_model.id == subject_model.class_ref)
+            .filter(class_model.id == class_id)
+            .order_by(topic_model.id.desc())   # recent first
+            .limit(10)
+            .all()
+        )
+
+        result[class_id] = [
+            {
+                "id": v.id,
+                "class_ref": v.subject.class_ref if v.subject else None,
+                "subject_ref": v.subject_ref,
+                "topic_ref": v.id,
+                "thumbnailUrl": v.thumbnail_url,
+                "name": v.topic_name,
+            }
+            for v in videos
+        ]
+
+    return result
+
+@route.get("/topic/video")
+def get_topic_video(
+    class_ref:int = Query(...),
+    subject_ref:int = Query(...),
+    topic_ref:int = Query(...),
+    db:Session = Depends(get_db)
+):
+    video = db.query(video_model).filter(video_model.class_ref == class_ref,video_model.subject_ref == subject_ref,video_model.topic_ref == topic_ref).all()
+
+    if not video:
+        return {"message":"Video does not exist"}
+    return video
     
