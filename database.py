@@ -1,9 +1,15 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+ENV = os.getenv("DATABASE_URL", "development")
 
 
-DATABASE_URL = "mysql+pymysql://root:Bhuban#12345@localhost:3306/bhabani"
+DATABASE_URL =  os.getenv("DATABASE_URL", "development")
 
 engine = create_engine(DATABASE_URL,echo=True)
 
