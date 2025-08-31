@@ -39,10 +39,8 @@ def create_user_platform(data: create_user_platform_type, db: Session = Depends(
     user_platform = (
         db.query(user_platform_model)
         .filter(
-            or_(
-                user_platform_model.catagory_ref == data.catagory_ref,
-                user_platform_model.user_ref == data.user_ref
-            )
+            user_platform_model.catagory_ref == data.catagory_ref,
+            user_platform_model.user_ref == data.user_ref
         )
         .first()
     )

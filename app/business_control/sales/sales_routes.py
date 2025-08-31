@@ -109,7 +109,8 @@ def get_course_videos(
 
 @routes.post("/transections")
 def create_transection(data:create_transection_type,db:Session=Depends(get_db)):
-    new_transection = transection_mode(transection_id=data.transection_id,customer_ref=data.customer_ref,amount=data.amount)
+    print(f"==========> {data}")
+    new_transection = transection_mode(transection_id=data.transection_id,customer_ref=data.customer_ref,amount=data.amount,date=data.date)
     db.add(new_transection)
     db.commit()
     db.refresh(new_transection)
@@ -131,5 +132,30 @@ def get_total_earning(
     return {
         "total_amount": total_amount,
         "list":earnings
+    }
+
+@routes.get("/user/subscription")
+def check_user_subscription(
+    user_ref:int = Query(...),
+    db:Session = Depends(get_db)
+):
+    transection = db.query(transection_mode).filter(transection_mode.customer_ref == user_ref).first()
+
+    if not transection:
+        return False
+    expire_date = transection.date
+    
+    if datetime.utcnow() > expire_date:
+        return {
+            "subscribed": False,
+            "expired": True,
+            "expire_date": expire_date,
+            "last_payment_date": transection.date
+        }
+    return {
+        "subscribed": True,
+        "expired": False,
+        "expire_date": expire_date,
+        "last_payment_date": transection.date
     }
 

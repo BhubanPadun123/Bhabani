@@ -1,6 +1,7 @@
 from pydantic import BaseModel,EmailStr
 from typing import List
 from fastapi import Query
+from datetime import date,datetime
 
 
 class create_user(BaseModel):
@@ -81,3 +82,4 @@ class create_transection_type(BaseModel):
     transection_id:str
     customer_ref:int
     amount:int
+    date:str
