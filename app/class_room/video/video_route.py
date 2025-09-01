@@ -12,6 +12,13 @@ import uuid
 import math
 import json
 from utils.types import video_create_type,subject_video_query_type,add_topic_video_type
+from azure.storage.blob import BlobServiceClient
+import os
+import json
+
+AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=https;AccountName=videocontainer;AccountKey=xxxxxxxx;EndpointSuffix=core.windows.net"
+CONTAINER_NAME="videos"
+
 
 
 supabase:Client = create_client(SUPABASE_URL,SECRET_KEY)
@@ -21,7 +28,12 @@ route = APIRouter(
 )
 UPLOAD_PROGRESS = {}
 MAX_MB = 99
-MAX_BYTES = MAX_MB * 1024 * 1024
+MAX_BYTES = 100 * 1024 * 1024 
+
+AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+CONTAINER_NAME = os.getenv("CONTAINER_NAME")
+blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+container_client = blob_service_client.get_container_client(CONTAINER_NAME)
 
 def get_video_bitrate(path):
     cmd = [
@@ -42,6 +54,7 @@ async def upload_video(file: UploadFile = File(...)):
 
         file_size = os.path.getsize(temp_file_path)
 
+        # ✅ Case 1: If file <= 100MB → Cloudinary
         if file_size <= MAX_BYTES:
             result = cloudinary.uploader.upload(
                 temp_file_path,
@@ -49,35 +62,22 @@ async def upload_video(file: UploadFile = File(...)):
                 public_id=f"{uuid.uuid4()}"
             )
             os.remove(temp_file_path)
-            return {"urls": [result.get("secure_url")]}
+            return {"provider": "cloudinary", "urls": [result.get("secure_url")]}
 
-        # Calculate duration per part based on bitrate
-        bitrate = get_video_bitrate(temp_file_path)  # bits per second
-        target_seconds = math.floor((MAX_BYTES * 8) / bitrate)  # duration per 99MB
+        # ✅ Case 2: If file > 100MB → Azure
+        else:
+            blob_name = f"{uuid.uuid4()}_{file.filename}"
+            blob_client = container_client.get_blob_client(blob_name)
 
-        # Split into sequential parts
-        subprocess.run([
-            "ffmpeg", "-i", temp_file_path, "-c", "copy", "-map", "0",
-            "-f", "segment", "-segment_time", str(target_seconds),
-            "-reset_timestamps", "1", "part%03d.mp4"
-        ], check=True)
+            with open(temp_file_path, "rb") as data:
+                blob_client.upload_blob(data, overwrite=True)
 
-        part_urls = []
-        for fname in sorted(f for f in os.listdir(".") if f.startswith("part") and f.endswith(".mp4")):
-            result = cloudinary.uploader.upload(
-                fname,
-                resource_type="video",
-                public_id=f"{uuid.uuid4()}"
-            )
-            part_urls.append(result.get("secure_url"))
-            os.remove(fname)
+            os.remove(temp_file_path)
 
-        os.remove(temp_file_path)
-
-        return {
-            "message": f"Uploaded {len(part_urls)} sequential parts",
-            "urls": part_urls
-        }
+            return {
+                "provider": "azure",
+                "urls": [blob_client.url]
+            }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error - {e}")
