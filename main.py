@@ -1,7 +1,7 @@
 from typing import Union
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from fastapi import FastAPI
+from fastapi import FastAPI,Request
 from database import Base,engine
 from utils.private import GOOGLE_KEY
 from app.auth.user_route import router as user_router
@@ -12,8 +12,12 @@ from app.class_room.topics.topic_route import route as topic_route
 from app.class_room.video.video_route import route as video_route
 from app.business_control.sales.sales_routes import routes as sales_rotes
 from app.platform_control.route import routes as platform_routes
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
+app.mount("/statics", StaticFiles(directory="statics"), name="statics")
 Base.metadata.create_all(bind=engine)
 app.add_middleware(
     CORSMiddleware,
@@ -26,6 +30,15 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=GOOGLE_KEY
 )
+
+templates = Jinja2Templates(directory="templates")
+
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+@app.get("/content/{page}", response_class=HTMLResponse)
+def load_content(request: Request, page: str):
+    return templates.TemplateResponse(f"partials/{page}.html", {"request": request})
 
 app.include_router(user_router, prefix="/auth")
 app.include_router(user_moditor,prefix="/api")

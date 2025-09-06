@@ -11,11 +11,14 @@ class create_user(BaseModel):
     hashed_password:str
     user_type:str
     org_id:str
+class login_user_tyope(BaseModel):
+    email:str
+    password:str
 class reset_password_type(BaseModel):
     email:EmailStr
     new_password:str
 class update_user_role_type(BaseModel):
-    user_id:str
+    user_id:int
     new_user_type:str
 
 class create_class_type(BaseModel):

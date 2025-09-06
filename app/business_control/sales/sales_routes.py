@@ -9,6 +9,7 @@ from utils.private import RAZORPAY_KEY_ID,RAZORPAY_KEY_SECRET
 from fastapi.responses import HTMLResponse
 import razorpay
 from datetime import datetime
+from sqlalchemy import extract, func
 
 
 routes = APIRouter(
@@ -109,7 +110,6 @@ def get_course_videos(
 
 @routes.post("/transections")
 def create_transection(data:create_transection_type,db:Session=Depends(get_db)):
-    print(f"==========> {data}")
     new_transection = transection_mode(transection_id=data.transection_id,customer_ref=data.customer_ref,amount=data.amount,date=data.date)
     db.add(new_transection)
     db.commit()
@@ -117,22 +117,76 @@ def create_transection(data:create_transection_type,db:Session=Depends(get_db)):
 
     return {"message":"payment record's updated!"}
 
-@routes.get("/earning")
-def get_total_earning(
-    start_date:datetime = Query(...,description="Start date in YYYY-MM-DD format"),
-    end_date:datetime = Query(...,description="End date in YYYY-MM-DD format"),
-    db:Session = Depends(get_db)
+@routes.get("/earning/monthly_group")
+def get_monthly_earnings(db: Session = Depends(get_db)):
+    # Group earnings by Year + Month
+    results = (
+        db.query(
+            extract("year", transection_mode.date).label("year"),
+            extract("month", transection_mode.date).label("month"),
+            func.sum(transection_mode.amount).label("total_amount"),
+            func.count(transection_mode.id).label("total_transactions")
+        )
+        .group_by("year", "month")
+        .order_by("year", "month")
+        .all()
+    )
+
+    if not results:
+        return {"message": "No transactions found"}
+
+    # Format response month-wise
+    monthly_data = []
+    for row in results:
+        month_name = datetime(int(row.year), int(row.month), 1).strftime("%B %Y")
+        monthly_data.append({
+            "month": month_name,
+            "year": int(row.year),
+            "month_number": int(row.month),
+            "total_amount": float(row.total_amount),
+            "total_transactions": int(row.total_transactions)
+        })
+
+    return {"monthly_earnings": monthly_data}
+
+@routes.get("/transactions/monthly")
+def get_all_transactions_monthly(
+    year: int = Query(..., description="Year in YYYY format"),
+    db: Session = Depends(get_db)
 ):
-    earnings = db.query(transection_mode).filter(transection_mode.date >= start_date).filter(transection_mode.date <= end_date).all()
-    
-    if not earnings:
-        return []
-    
-    total_amount = sum(t.amount for t in earnings)
-    return {
-        "total_amount": total_amount,
-        "list":earnings
-    }
+    transactions = (
+        db.query(transection_mode)
+        .filter(extract("year", transection_mode.date) == year)
+        .order_by(transection_mode.date.asc())
+        .all()
+    )
+
+    if not transactions:
+        return {"message": f"No transactions found for {year}"}
+
+    monthly_data = {}
+    for t in transactions:
+        month = t.date.month
+        month_key = f"{datetime(year, month, 1).strftime('%B %Y')}"
+
+        if month_key not in monthly_data:
+            monthly_data[month_key] = {
+                "year": year,
+                "month_number": month,
+                "transactions": []
+            }
+
+        monthly_data[month_key]["transactions"].append({
+            "id": t.id,
+            "transection_id": t.transection_id,
+            "customer_ref": t.customer_ref,
+            "amount": float(t.amount),
+            "date": t.date.strftime("%Y-%m-%d %H:%M:%S")
+        })
+
+    result = [{"month": k, **v} for k, v in monthly_data.items()]
+
+    return {"year": year, "monthly_transactions": result}
 
 @routes.get("/user/subscription")
 def check_user_subscription(

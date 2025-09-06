@@ -27,3 +27,9 @@ class user_platform_model(Base):
         "cataory_model",
         back_populates="user_platforms"
     )
+
+class feedback_model(Base):
+    __tablename__="feedback"
+    id = Column(Integer,primary_key=True,index=True)
+    userRef = Column(Integer)
+    message = Column(String(1000))

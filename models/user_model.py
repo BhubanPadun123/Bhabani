@@ -33,8 +33,8 @@ class sale_product_model(Base):
 
 class transection_mode(Base):
     __tablename__ = "transection"
-    id = Column(Integer,primary_key=True,index=True)
-    transection_id = Column(String(300),nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+    transection_id = Column(String(300), nullable=False)
     customer_ref = Column(Integer)
-    amount = Column(Integer,nullable=False)
-    date = Column(DateTime, default=datetime.utcnow())
+    amount = Column(Integer, nullable=False)
+    date = Column(DateTime, default=datetime.utcnow)

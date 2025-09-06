@@ -11,7 +11,7 @@ routes = APIRouter(
 )
 
 @routes.get("/all")
-def user_list(db:Session=Depends(get_db),token_data:dict=Depends(verify_token)):
+def user_list(db:Session=Depends(get_db)):
     users = db.query(user_model).all()
 
     if not users:
@@ -21,7 +21,7 @@ def user_list(db:Session=Depends(get_db),token_data:dict=Depends(verify_token)):
         "user_list":users
     }
 @routes.put('/update_role')
-def user_user_role(data:types.update_user_role_type,db:Session=Depends(get_db),token_data:dict=Depends(verify_token)):
+def user_user_role(data:types.update_user_role_type,db:Session=Depends(get_db)):
     user = db.query(user_model).filter(user_model.id == data.user_id).first()
 
     if not user:
@@ -31,3 +31,8 @@ def user_user_role(data:types.update_user_role_type,db:Session=Depends(get_db),t
     return {
         "message":"user type updated successfully!"
     }
+
+@routes.get("/roles")
+def user_role_list():
+    roles = ["owner","customer","admin","supper_admin","stuff"]
+    return roles

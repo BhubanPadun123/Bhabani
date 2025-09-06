@@ -1,9 +1,9 @@
 from fastapi import Query,APIRouter,Depends,HTTPException,UploadFile,File,status
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-from models.control_model import cataory_model,user_platform_model
+from models.control_model import cataory_model,user_platform_model,feedback_model
 from database import get_db
-from app.platform_control.types import create_catagory_type,create_user_platform_type
+from app.platform_control.types import create_catagory_type,create_user_platform_type,feedback_create_type
 from utils.cloudinary import cloudinary
 
 
@@ -90,3 +90,24 @@ async def upload_image(file: UploadFile = File(...)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
+
+@routes.post("/feedback")
+def create_feedback(data:feedback_create_type,db:Session=Depends(get_db)):
+    new_feed_back = feedback_model(
+        userRef = data.user_ref,
+        message = data.message
+    )
+
+    db.add(new_feed_back)
+    db.commit()
+    db.refresh(new_feed_back)
+
+    return {"message":"Thank you for your feedback"}
+
+@routes.get('/feedback')
+def get_all_feedback(db:Session = Depends(get_db)):
+    all_feedback = db.query(feedback_model).all()
+
+    if not all_feedback:
+        return []
+    return all_feedback

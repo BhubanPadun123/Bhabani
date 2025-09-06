@@ -8,3 +8,7 @@ class create_catagory_type(BaseModel):
 class create_user_platform_type(BaseModel):
     user_ref:int
     catagory_ref:int
+
+class feedback_create_type(BaseModel):
+    user_ref:int
+    message:str
