@@ -5,6 +5,9 @@ import {
 import {
     renderDashboard
 } from "./utils/dashboard.js"
+import {
+    renderTabsPage
+} from "./utils/courses.js"
 
 
 async function ___init__(){
@@ -15,13 +18,12 @@ async function ___init__(){
     const setting = document.getElementById("setting")
     const login = document.getElementById("login")
 
-    console.log(login)
 
 
     const contentRenderArea = document.querySelector(".content")
 
     const user = await getUser()
-    console.log(user)
+  
     if(!user && login ){
         renderLoginPage(contentRenderArea)
     }else{
@@ -35,6 +37,11 @@ async function ___init__(){
             e.preventDefault()
             contentRenderArea.innerHTML = ""
             renderDashboard(contentRenderArea)
+        })
+        courses.addEventListener("click",(e)=> {
+            e.preventDefault()
+            contentRenderArea.innerHTML = ""
+            renderTabsPage(contentRenderArea)
         })
 
 
