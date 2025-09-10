@@ -27,10 +27,10 @@ route = APIRouter(
 MAX_MB = 1500  # 1.5 GB
 MAX_BYTES = MAX_MB * 1024 * 1024  
 
-AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
-CONTAINER_NAME = os.getenv("CONTAINER_NAME")
-blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
-container_client = blob_service_client.get_container_client(CONTAINER_NAME)
+# AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+# CONTAINER_NAME = os.getenv("CONTAINER_NAME")
+# blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+# container_client = blob_service_client.get_container_client(CONTAINER_NAME)
 
 
 @route.post("/upload")
@@ -54,25 +54,25 @@ async def upload_video(file: UploadFile = File(...)):
             return {"provider": "cloudinary", "urls": [result.get("secure_url")]}
 
         # ✅ Case 2: If file > 100MB → Azure (chunk upload for up to 1.5 GB)
-        else:
-            blob_name = f"{uuid.uuid4()}_{file.filename}"
-            blob_client = container_client.get_blob_client(blob_name)
+        # else:
+        #     blob_name = f"{uuid.uuid4()}_{file.filename}"
+        #     blob_client = container_client.get_blob_client(blob_name)
 
-            # Upload in chunks
-            with open(temp_file_path, "rb") as data:
-                blob_client.upload_blob(
-                    data,
-                    overwrite=True,
-                    blob_type="BlockBlob",
-                    max_concurrency=4,  # parallel uploads
-                    length=file_size,
-                )
+        #     # Upload in chunks
+        #     with open(temp_file_path, "rb") as data:
+        #         blob_client.upload_blob(
+        #             data,
+        #             overwrite=True,
+        #             blob_type="BlockBlob",
+        #             max_concurrency=4,  # parallel uploads
+        #             length=file_size,
+        #         )
 
-            os.remove(temp_file_path)
-            return {
-                "provider": "azure",
-                "urls": [blob_client.url]
-            }
+        #     os.remove(temp_file_path)
+        #     return {
+        #         "provider": "azure",
+        #         "urls": [blob_client.url]
+        #     }
 
     except Exception as e:
         if os.path.exists(temp_file_path):
