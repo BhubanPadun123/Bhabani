@@ -12,9 +12,11 @@ import uuid
 import math
 import json
 from utils.types import video_create_type,subject_video_query_type,add_topic_video_type
-from azure.storage.blob import BlobServiceClient
+from azure.storage.blob import BlobServiceClient,generate_blob_sas,BlobSasPermissions
 import os
 import json
+from datetime import datetime,timedelta
+from urllib.parse import quote
 
 
 
@@ -27,11 +29,30 @@ route = APIRouter(
 MAX_MB = 1500  # 1.5 GB
 MAX_BYTES = MAX_MB * 1024 * 1024  
 
-# AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
-# CONTAINER_NAME = os.getenv("CONTAINER_NAME")
-# blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
-# container_client = blob_service_client.get_container_client(CONTAINER_NAME)
+AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+CONTAINER_NAME = os.getenv("CONTAINER_NAME")
+blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+container_client = blob_service_client.get_container_client(CONTAINER_NAME)
+account_key = os.getenv("AZURE_STORAGE_KEY")
 
+
+def is_azure_connected()-> bool:
+    try:
+        blob_service_client.get_service_properties()
+        return True
+    except Exception as e:
+        print(f"Error while connect the azure {e}")
+        return False
+def get_blob_sas_url(blob_name:str)-> str :
+    sas_token = generate_blob_sas(
+        account_name=blob_service_client.account_name,
+        container_name=CONTAINER_NAME,
+        blob_name=blob_name,
+        account_key=account_key,
+        permission=BlobSasPermissions(read=True),
+        expiry=datetime.utcnow() + timedelta(days=365)
+    )
+    return f"https://{blob_service_client.account_name}.blob.core.windows.net/{CONTAINER_NAME}/{blob_name}?{sas_token}"
 
 @route.post("/upload")
 async def upload_video(file: UploadFile = File(...)):
@@ -54,46 +75,61 @@ async def upload_video(file: UploadFile = File(...)):
             return {"provider": "cloudinary", "urls": [result.get("secure_url")]}
 
         # ✅ Case 2: If file > 100MB → Azure (chunk upload for up to 1.5 GB)
-        # else:
-        #     blob_name = f"{uuid.uuid4()}_{file.filename}"
-        #     blob_client = container_client.get_blob_client(blob_name)
+        else:
+            blob_name = f"{uuid.uuid4()}_{file.filename}"
+            blob_client = container_client.get_blob_client(blob_name)
 
-        #     # Upload in chunks
-        #     with open(temp_file_path, "rb") as data:
-        #         blob_client.upload_blob(
-        #             data,
-        #             overwrite=True,
-        #             blob_type="BlockBlob",
-        #             max_concurrency=4,  # parallel uploads
-        #             length=file_size,
-        #         )
+            # Upload in chunks
+            with open(temp_file_path, "rb") as data:
+                blob_client.upload_blob(
+                    data,
+                    overwrite=True,
+                    blob_type="BlockBlob",
+                    max_concurrency=4,  # parallel uploads
+                    length=file_size,
+                )
 
-        #     os.remove(temp_file_path)
-        #     return {
-        #         "provider": "azure",
-        #         "urls": [blob_client.url]
-        #     }
+            os.remove(temp_file_path)
+            return {
+                "provider": "azure",
+                "urls": [blob_name]
+            }
 
     except Exception as e:
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
         raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
+
+@route.get("/video/{blob_name:path}")
+def get_video_url(blob_name: str):
+    sas_token = generate_blob_sas(
+        account_name=blob_service_client.account_name,
+        container_name=CONTAINER_NAME,
+        blob_name=blob_name,  # use raw name
+        account_key=account_key,
+        permission=BlobSasPermissions(read=True),
+        expiry=datetime.utcnow() + timedelta(hours=2)
+    )
+    # URL-encode blob_name for safety in browsers
+    encoded_blob_name = quote(blob_name, safe="/")
+    url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{CONTAINER_NAME}/{encoded_blob_name}?{sas_token}"
+    return {"url": url}
             
 @route.post("/create")
 def create_video(data:video_create_type,db:Session = Depends(get_db)):
-    check_exists = db.query(
-        class_model,subject_model,topic_model
-        ).join(
-            subject_model,subject_model.class_ref == class_model.id
-            ).join(
-                topic_model,topic_model.subject_ref == subject_model.id
-                ).filter(
-                    class_model.id == data.class_ref,
-                    subject_model.id == data.subject_ref,
-                    topic_model.id == data.topic_ref
-                ).first()
-    if not check_exists:
-        raise HTTPException(status_code=500,detail=f"Privides data are not matching with any of the row")
+    # check_exists = db.query(
+    #     class_model,subject_model,topic_model
+    #     ).join(
+    #         subject_model,subject_model.class_ref == class_model.id
+    #         ).join(
+    #             topic_model,topic_model.subject_ref == subject_model.id
+    #             ).filter(
+    #                 class_model.id == data.class_ref,
+    #                 subject_model.id == data.subject_ref,
+    #                 topic_model.id == data.topic_ref
+    #             ).first()
+    # if not check_exists:
+    #     raise HTTPException(status_code=500,detail=f"Privides data are not matching with any of the row")
     new_video = video_model(
         class_ref=data.class_ref,
         subject_ref=data.subject_ref,

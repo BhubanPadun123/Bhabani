@@ -1,5 +1,5 @@
 export const renderTabsPage = (container) => {
-    container.innerHTML = `
+  container.innerHTML = `
       <div style="width: 100%; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
         <div style="display: flex; border-bottom: 2px solid #eee; flex-wrap: wrap;">
           <button class="tab-btn active" data-tab="tab1" style="flex:1; padding:12px; background:none; border:none; border-bottom:3px solid #4a90e2; color:#4a90e2; font-weight:bold; cursor:pointer;">Education</button>
@@ -10,8 +10,8 @@ export const renderTabsPage = (container) => {
           <h3 style="margin-top:0; color:#4a90e2;">Manage Educational content</h3>
           <div style="width:100%;display:flex;flex-direction:column" >
             <div style="width:100%; display:flex;flex-direction:row;justify-content:center;gap:10px;margin-top:40px ">
-              <input placeholder="Create Class" style="padding:8px; flex:1; border:1px solid #ccc; border-radius:4px;"/>
-              <button style="padding:8px 16px; background:#4a90e2; color:#fff; border:none; border-radius:4px; cursor:pointer;">Create</button>
+              <input id="create_class" placeholder="Create Class" style="padding:8px; flex:1; border:1px solid #ccc; border-radius:4px;"/>
+              <button id="create_class_btn" onclick="handleCreateClass" style="padding:8px 16px; background:#4a90e2; color:#fff; border:none; border-radius:4px; cursor:pointer;">Create</button>
             </div>
           </div>
         </div>
@@ -28,57 +28,60 @@ export const renderTabsPage = (container) => {
       </div>
     `;
 
-    const tabBtns = container.querySelectorAll(".tab-btn");
-    const tabContents = container.querySelectorAll(".tab-content");
+  const tabBtns = container.querySelectorAll(".tab-btn");
+  const tabContents = container.querySelectorAll(".tab-content");
+  const create_class_btn = document.getElementById("create_class_btn")
+  create_class_btn.addEventListener("click",handleCreateClass)
 
-    const fetchClsData = async () => {
-        try {
-            const res = await fetch(`/route/classes/all`, { method: "GET" });
+  const fetchClsData = async () => {
+    try {
+      const res = await fetch(`/route/classes/all`, { method: "GET" });
 
-            if (!res.ok) {
-                throw new Error(`HTTP error! status: ${res.status}`);
-            }
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
 
-            const clsList = await res.json(); // parse the actual JSON body
-            return clsList;
-        } catch (err) {
-            alert("Something went wrong!");
-            console.error("Fetch error:", err);
-            return null;
-        }
-    };
+      const clsList = await res.json(); // parse the actual JSON body
+      return clsList;
+    } catch (err) {
+      alert("Something went wrong!");
+      console.error("Fetch error:", err);
+      return null;
+    }
+  };
 
-    (async () => {
-        const data = await fetchClsData()
-        if(data){
-            const {classes} = data
-            const entertainment = classes && Array.isArray(classes) && classes.length > 0 && classes.filter(i => i.category === "entertainment")
-            const academic = classes && Array.isArray(classes) && classes.length > 0 && classes.filter(i => i.category === "academic")
-            console.log({
-                entertainment,
-                academic
-            })
-            tabBtns.forEach((btn) => {
-                btn.addEventListener("click", () => {
-                    const target = btn.getAttribute("data-tab");
-        
-                    // reset all tabs
-                    tabBtns.forEach((b) => {
-                        b.classList.remove("active");
-                        b.style.color = "#555";
-                        b.style.borderBottom = "3px solid transparent";
-                    });
-                    tabContents.forEach((c) => (c.style.display = "none"));
-        
-                    // activate clicked tab
-                    btn.classList.add("active");
-                    btn.style.color = "#4a90e2";
-                    btn.style.borderBottom = "3px solid #4a90e2";
-                    container.querySelector("#" + target).style.display = "block";
-                });
-            });
-        }
-    })()
+  (async () => {
+    const data = await fetchClsData()
+    if (data) {
+      const { classes } = data
+      const entertainment = classes && Array.isArray(classes) && classes.length > 0 && classes.filter(i => i.category === "entertainment")
+      const academic = classes && Array.isArray(classes) && classes.length > 0 && classes.filter(i => i.category === "academic")
+      tabBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const target = btn.getAttribute("data-tab");
+
+          // reset all tabs
+          tabBtns.forEach((b) => {
+            b.classList.remove("active");
+            b.style.color = "#555";
+            b.style.borderBottom = "3px solid transparent";
+          });
+          tabContents.forEach((c) => (c.style.display = "none"));
+
+          // activate clicked tab
+          btn.classList.add("active");
+          btn.style.color = "#4a90e2";
+          btn.style.borderBottom = "3px solid #4a90e2";
+          container.querySelector("#" + target).style.display = "block";
+        })
+      })
+    }
+  })()
 };
+
+function handleCreateClass(){
+  const input = document.getElementById("create_class")
+  console.log(input)
+}
 
 

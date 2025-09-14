@@ -8,6 +8,9 @@ import {
 import {
     renderTabsPage
 } from "./utils/courses.js"
+import {
+    renderVideoUploader
+} from "./utils/videoUploader.js"
 
 
 async function ___init__(){
