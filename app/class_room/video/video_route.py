@@ -56,22 +56,21 @@ def get_blob_sas_url(blob_name:str)-> str :
 
 @route.post("/upload")
 async def upload_video(file: UploadFile = File(...)):
-    temp_file_path = f"temp_{file.filename}"
     try:
-        with open(temp_file_path, "wb") as f:
+        with open(file.filename, "wb") as f:
             f.write(await file.read())
 
-        file_size = os.path.getsize(temp_file_path)
+        file_size = os.path.getsize(file.filename)
 
         # ✅ Case 1: If file <= 100MB → Cloudinary
         if file_size <= 100 * 1024 * 1024:
             import cloudinary.uploader
             result = cloudinary.uploader.upload(
-                temp_file_path,
+                file.filename,
                 resource_type="video",
                 public_id=f"{uuid.uuid4()}"
             )
-            os.remove(temp_file_path)
+            os.remove(file.filename)
             return {"provider": "cloudinary", "urls": [result.get("secure_url")]}
 
         # ✅ Case 2: If file > 100MB → Azure (chunk upload for up to 1.5 GB)
@@ -80,7 +79,7 @@ async def upload_video(file: UploadFile = File(...)):
             blob_client = container_client.get_blob_client(blob_name)
 
             # Upload in chunks
-            with open(temp_file_path, "rb") as data:
+            with open(file.filename, "rb") as data:
                 blob_client.upload_blob(
                     data,
                     overwrite=True,
@@ -89,15 +88,13 @@ async def upload_video(file: UploadFile = File(...)):
                     length=file_size,
                 )
 
-            os.remove(temp_file_path)
+            os.remove(file.filename)
             return {
                 "provider": "azure",
                 "urls": [blob_name]
             }
 
     except Exception as e:
-        if os.path.exists(temp_file_path):
-            os.remove(temp_file_path)
         raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
 
 @route.get("/video/{blob_name:path}")
