@@ -35,7 +35,7 @@ blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CON
 container_client = blob_service_client.get_container_client(CONTAINER_NAME)
 account_key = os.getenv("AZURE_STORAGE_KEY")
 
-
+CHUNK_SIZE = 4 * 1024 * 1024
 def is_azure_connected()-> bool:
     try:
         blob_service_client.get_service_properties()
@@ -57,44 +57,53 @@ def get_blob_sas_url(blob_name:str)-> str :
 @route.post("/upload")
 async def upload_video(file: UploadFile = File(...)):
     try:
-        with open(file.filename, "wb") as f:
+        # Save file locally first
+        local_file_path = f"/tmp/{file.filename}"
+        with open(local_file_path, "wb") as f:
             f.write(await file.read())
 
-        file_size = os.path.getsize(file.filename)
+        file_size = os.path.getsize(local_file_path)
 
-        # ✅ Case 1: If file <= 100MB → Cloudinary
+        # Case 1: Small file -> Cloudinary
         if file_size <= 100 * 1024 * 1024:
             import cloudinary.uploader
             result = cloudinary.uploader.upload(
-                file.filename,
+                local_file_path,
                 resource_type="video",
-                public_id=f"{uuid.uuid4()}"
+                public_id=str(uuid.uuid4())
             )
-            os.remove(file.filename)
+            os.remove(local_file_path)
             return {"provider": "cloudinary", "urls": [result.get("secure_url")]}
 
-        # ✅ Case 2: If file > 100MB → Azure (chunk upload for up to 1.5 GB)
+        # Case 2: Large file -> Azure Block Blob with chunking
         else:
             blob_name = f"{uuid.uuid4()}_{file.filename}"
             blob_client = container_client.get_blob_client(blob_name)
 
-            # Upload in chunks
-            with open(file.filename, "rb") as data:
-                blob_client.upload_blob(
-                    data,
-                    overwrite=True,
-                    blob_type="BlockBlob",
-                    max_concurrency=4,  # parallel uploads
-                    length=file_size,
-                )
+            # Stage blocks in chunks
+            block_ids = []
+            with open(local_file_path, "rb") as f:
+                index = 0
+                while True:
+                    chunk = f.read(CHUNK_SIZE)
+                    if not chunk:
+                        break
+                    block_id = str(index).zfill(6)  # must be base64, see note below
+                    blob_client.stage_block(
+                        block_id=block_id,
+                        data=chunk
+                    )
+                    block_ids.append(block_id)
+                    index += 1
 
-            os.remove(file.filename)
-            return {
-                "provider": "azure",
-                "urls": [blob_name]
-            }
+            # Commit blocks
+            blob_client.commit_block_list(block_ids)
+
+            os.remove(local_file_path)
+            return {"provider": "azure", "urls": [blob_name]}
 
     except Exception as e:
+        os.remove(local_file_path)
         raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
 
 @route.get("/video/{blob_name:path}")
