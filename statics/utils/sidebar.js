@@ -21,7 +21,6 @@ export const renderLoginPage = (container) => {
                     <input type="password" id="password" name="password" style="width:100%; padding:10px; margin-top:5px;"/>
                 </div>
                 <button type="submit" style="width:100%; padding:12px; background:#4a90e2; color:#fff; border:none; border-radius:5px; cursor:pointer;">Login</button>
-                <button type="submit" style="width:100%; padding:12px; background:#4a90e2; color:#fff; border:none; border-radius:5px; cursor:pointer;">Logout</button>
             </form>
         </div>
     `;

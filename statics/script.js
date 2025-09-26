@@ -16,7 +16,7 @@ import {
 async function ___init__(){
     const dashboard = document.getElementById("dashboard")
     const courses = document.getElementById("courses")
-    const students = document.getElementById("students")
+    const upload_videos = document.getElementById("upload_videos")
     const reports = document.getElementById("reports")
     const setting = document.getElementById("setting")
     const login = document.getElementById("login")
@@ -45,6 +45,10 @@ async function ___init__(){
             e.preventDefault()
             contentRenderArea.innerHTML = ""
             renderTabsPage(contentRenderArea)
+        })
+        upload_videos.addEventListener("click",(e)=> {
+            e.preventDefault()
+            console.log("ljdfkdsf")
         })
 
 
