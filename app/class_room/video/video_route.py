@@ -96,6 +96,8 @@ async def upload_video(file: UploadFile = File(...)):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
+    finally:
+        os.remove(file.filename)
 
 @route.get("/video/{blob_name:path}")
 def get_video_url(blob_name: str):
