@@ -114,35 +114,36 @@ route = APIRouter(
 #     url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{CONTAINER_NAME}/{encoded_blob_name}?{sas_token}"
 #     return {"url": url}
             
-# @route.post("/create")
-# def create_video(data:video_create_type,db:Session = Depends(get_db)):
-#     # check_exists = db.query(
-#     #     class_model,subject_model,topic_model
-#     #     ).join(
-#     #         subject_model,subject_model.class_ref == class_model.id
-#     #         ).join(
-#     #             topic_model,topic_model.subject_ref == subject_model.id
-#     #             ).filter(
-#     #                 class_model.id == data.class_ref,
-#     #                 subject_model.id == data.subject_ref,
-#     #                 topic_model.id == data.topic_ref
-#     #             ).first()
-#     # if not check_exists:
-#     #     raise HTTPException(status_code=500,detail=f"Privides data are not matching with any of the row")
-#     new_video = video_model(
-#         class_ref=data.class_ref,
-#         subject_ref=data.subject_ref,
-#         topic_ref=data.topic_ref,
-#         sl_no = data.sl_no,
-#         video_url = data.video_url,
-#         description = data.description,
-#         thumbnailUrl = data.thumbnailUrl
-#     )
-#     db.add(new_video)
-#     db.commit()
-#     db.refresh(new_video)
+@route.post("/create")
+def create_video(data:video_create_type,db:Session = Depends(get_db)):
+    # check_exists = db.query(
+    #     class_model,subject_model,topic_model
+    #     ).join(
+    #         subject_model,subject_model.class_ref == class_model.id
+    #         ).join(
+    #             topic_model,topic_model.subject_ref == subject_model.id
+    #             ).filter(
+    #                 class_model.id == data.class_ref,
+    #                 subject_model.id == data.subject_ref,
+    #                 topic_model.id == data.topic_ref
+    #             ).first()
+    # if not check_exists:
+    #     raise HTTPException(status_code=500,detail=f"Privides data are not matching with any of the row")
+    print(video_create_type)
+    new_video = video_model(
+        class_ref=data.class_ref,
+        subject_ref=data.subject_ref,
+        topic_ref=data.topic_ref,
+        sl_no = data.sl_no,
+        video_url = data.video_url,
+        description = data.description,
+        thumbnailUrl = data.thumbnailUrl
+    )
+    db.add(new_video)
+    db.commit()
+    db.refresh(new_video)
 
-#     return {"message":"Video created successfull!"}
+    return {"message":"Video created successfull!"}
 
 @route.get("/all")
 def get_all_subject_video(

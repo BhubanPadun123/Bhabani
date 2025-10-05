@@ -1,19 +1,19 @@
 function ___init__() {
-    const upload_videos = document.getElementById("upload_videos")
-    const contentRenderArea = document.querySelector(".content")
-    if (upload_videos) {
-        upload_videos.addEventListener("click", (e) => {
-            e.preventDefault()
-            contentRenderArea.innerHTML = ""
-            renderForm(contentRenderArea)
-        })
-    }
-    console.log("hello", upload_videos)
+  const upload_videos = document.getElementById("upload_videos")
+  const contentRenderArea = document.querySelector(".content")
+  if (upload_videos) {
+    upload_videos.addEventListener("click", (e) => {
+      e.preventDefault()
+      contentRenderArea.innerHTML = ""
+      renderForm(contentRenderArea)
+    })
+  }
+  console.log("hello", upload_videos)
 }
 ___init__()
 
 function renderForm(root) {
-    root.innerHTML = `
+  root.innerHTML = `
     <form id="videoForm" class="form-container">
       <!-- Class Dropdown -->
       <div class="form-group">
@@ -57,7 +57,7 @@ function renderForm(root) {
       <!-- Video Upload -->
       <div class="form-group">
         <label for="video-upload">Upload Video</label>
-        <input type="file" id="video-upload" accept="video/*" />
+        <textarea id="video-upload" rows="4" placeholder="Enter the video url"></textarea>
       </div>
 
       <!-- Submit Button -->
@@ -67,67 +67,35 @@ function renderForm(root) {
     </form>
     `
 
-    // attach submit listener after rendering
-    const form = document.getElementById("videoForm")
-    const className = document.getElementById("class-select")
-    const subject = document.getElementById("subject-select")
-    const topic = document.getElementById("topic-select")
-    const description = document.getElementById("description")
-    const videoFile = document.getElementById("video-upload")
-    let url = null
+  // attach submit listener after rendering
+  const form = document.getElementById("videoForm")
+  const className = document.getElementById("class-select")
+  const subject = document.getElementById("subject-select")
+  const topic = document.getElementById("topic-select")
+  const description = document.getElementById("description")
 
-    populateClassDropdown()
-    className.addEventListener("change", (e) => {
-        e.preventDefault()
-        populateSubjectDropdown()
-    })
-    subject.addEventListener("change", (e) => {
-        e.preventDefault()
-        populateTopicsDropdown()
-    })
-    createLoader()
-    videoFile.addEventListener('change', async (e) => {
-        e.preventDefault();
-
-        const video = videoFile.files[0];
-        if (!video) return;
-
-        const formData = new FormData();
-        formData.append("file", video);
-
-        try {
-            showLoader(); // show loader while uploading
-
-            const res = await fetch(`/route/video/upload`, {
-                method: "POST",
-                body: formData
-            });
-
-            const data = await res.json()
-
-            if (!data || !data.urls) return
-            url = data.urls
-
-            alert("Video uploaded successfully! Check console for response.")
-        } catch (error) {
-            console.error("Error while uploading video:", error)
-            alert("Error while uploading video. Try again!")
-        } finally {
-            hideLoader()
-        }
-    });
+  populateClassDropdown()
+  className.addEventListener("change", (e) => {
+    e.preventDefault()
+    populateSubjectDropdown()
+  })
+  subject.addEventListener("change", (e) => {
+    e.preventDefault()
+    populateTopicsDropdown()
+  })
+  createLoader()
 
 
-    form.addEventListener("submit", (e) => {
-        e.preventDefault()
-        handleFormSubmit(url)
-    })
+  form.addEventListener("submit", (e) => {
+    e.preventDefault()
+    handleFormSubmit()
+  })
 
-    // Inject styles dynamically (only once)
-    if (!document.getElementById("form-styles")) {
-        const style = document.createElement("style")
-        style.id = "form-styles"
-        style.innerHTML = `
+  // Inject styles dynamically (only once)
+  if (!document.getElementById("form-styles")) {
+    const style = document.createElement("style")
+    style.id = "form-styles"
+    style.innerHTML = `
           .form-container {
             max-width: 400px;
             margin: 20px auto;
@@ -214,156 +182,150 @@ function renderForm(root) {
             }
           }
         `
-        document.head.appendChild(style)
-    }
+    document.head.appendChild(style)
+  }
 }
 
 // function invoked on submit
-async function handleFormSubmit(url) {
-    if(!url){
-        alert("Please upload the video")
-        return
-    }
+async function handleFormSubmit() {
 
-    const className = document.getElementById("class-select").value
-    const subject = document.getElementById("subject-select").value
-    const topic = document.getElementById("topic-select").value
-    const description = document.getElementById("description").value
-    const videoFile = [
-        "449323a0-5184-4ac0-8d9d-e5e5e7238914_Udaipur_Files_2025_Hindi_Full_Movie_480p_HDTC-(Filmywap.mov).mp4"
-    ]
-    console.log({
-        className,
-        subject,
-        topic,
-        description,
-        videoFile
+  const className = document.getElementById("class-select").value
+  const subject = document.getElementById("subject-select").value
+  const topic = document.getElementById("topic-select").value
+  const description = document.getElementById("description").value
+  const url = document.getElementById("video-upload").value
+  if(!className || !subject || !topic || !description || !url){
+    alert("Please fill all data")
+    return
+  }
+  showLoader()
+
+  const uploadData = {
+    class_ref: Number(className),
+    subject_ref: Number(subject),
+    topic_ref: Number(topic),
+    sl_no: 1,
+    video_url: [url],
+    description: description,
+    thumbnailUrl: "null"
+  }
+  console.log({
+    uploadData
+  })
+  try {
+    const res = await fetch(`/route/video/create`, {
+      method: "post",
+      body: JSON.stringify(uploadData),
+      headers: {
+        "Content-Type": "application/json" // MUST have this
+      }
     })
-    showLoader()
-
-    const uploadData = {
-        class_ref: Number(className),
-        subject_ref: Number(subject),
-        topic_ref: Number(topic),
-        sl_no: 1,
-        video_url: videoFile,
-        description: description,
-        thumbnailUrl: "null"
+    const data = await res.json()
+    if (!res.ok) {
+      alert("Error while upload")
+      return
     }
-    try {
-        const res = await fetch(`/route/video/create`, {
-            method: "post",
-            body: JSON.stringify(uploadData),
-            headers: {
-                "Content-Type": "application/json" // MUST have this
-            }
-        })
-        const data = await res.json()
-        if(!res.ok){
-            alert("Error while upload")
-            return
-        }
-        alert("Video upload successfully")
-        document.getElementById("dashboard").click()
-    } catch (error) {
-        alert("Error while upload video")
-    } finally {
-        hideLoader()
-    }
+    alert("Video upload successfully")
+    document.getElementById("dashboard").click()
+  } catch (error) {
+    alert("Error while upload video")
+  } finally {
+    hideLoader()
+  }
 
 }
 async function populateTopicsDropdown() {
-    const topicSelect = document.getElementById("topic-select")
-    const subject = document.getElementById("subject-select").value
-    if (!subject) return
+  const topicSelect = document.getElementById("topic-select")
+  const subject = document.getElementById("subject-select").value
+  if (!subject) return
 
-    try {
-        const res = await fetch(`/route/topics/all/${subject}`, {
-            method: "get"
-        })
-        const data = await res.json()
-        if (!data || !Array.isArray(data)) {
-            console.error("Error fetching classes:", error);
-            topicSelect.innerHTML = '<option>No Subject Found under this class</option>'
-            return
-        }
-        topicSelect.innerHTML = '<option>Select Class</option>';
-        data.forEach(cls => {
-            const option = document.createElement("option");
-            option.value = cls.id;
-            option.textContent = cls.topic_name;
-            topicSelect.appendChild(option);
-        });
-    } catch (error) {
-        console.error("Error fetching classes:", error);
-        topicSelect.innerHTML = '<option>Error loading classes</option>';
+  try {
+    const res = await fetch(`/route/topics/all/${subject}`, {
+      method: "get"
+    })
+    const data = await res.json()
+    if (!data || !Array.isArray(data)) {
+      console.error("Error fetching classes:", error);
+      topicSelect.innerHTML = '<option>No Subject Found under this class</option>'
+      return
     }
+    topicSelect.innerHTML = '<option>Select Class</option>';
+    data.forEach(cls => {
+      const option = document.createElement("option");
+      option.value = cls.id;
+      option.textContent = cls.topic_name;
+      topicSelect.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Error fetching classes:", error);
+    topicSelect.innerHTML = '<option>Error loading classes</option>';
+  }
 }
 async function populateSubjectDropdown() {
-    const subjectSelect = document.getElementById("subject-select")
-    const className = document.getElementById("class-select").value
-    if (!className) return
+  const subjectSelect = document.getElementById("subject-select")
+  const className = document.getElementById("class-select").value
+  if (!className) return
 
-    try {
-        const res = await fetch(`/route/subjects/all/${className}`, {
-            method: "get"
-        })
-        const data = await res.json()
-        if (!data || !data.list) {
-            console.error("Error fetching classes:", error);
-            subjectSelect.innerHTML = '<option>No Subject Found under this class</option>'
-            return
-        }
-        subjectSelect.innerHTML = '<option>Select Class</option>';
-        data.list.forEach(cls => {
-            const option = document.createElement("option");
-            option.value = cls.id;
-            option.textContent = cls.subject_name;
-            subjectSelect.appendChild(option);
-        });
-    } catch (error) {
-        console.error("Error fetching classes:", error);
-        subjectSelect.innerHTML = '<option>Error loading classes</option>';
+  try {
+    const res = await fetch(`/route/subjects/all/${className}`, {
+      method: "get"
+    })
+    const data = await res.json()
+    if (!data || !data.list) {
+      console.error("Error fetching classes:", error);
+      subjectSelect.innerHTML = '<option>No Subject Found under this class</option>'
+      return
     }
+    subjectSelect.innerHTML = '<option>Select Class</option>';
+    data.list.forEach(cls => {
+      const option = document.createElement("option");
+      option.value = cls.id;
+      option.textContent = cls.subject_name;
+      subjectSelect.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Error fetching classes:", error);
+    subjectSelect.innerHTML = '<option>Error loading classes</option>';
+  }
 }
 async function populateClassDropdown() {
-    const classSelect = document.getElementById("class-select");
+  const classSelect = document.getElementById("class-select");
 
-    try {
-        const res = await fetch("/route/classes/all", { method: "GET" });
-        const data = await res.json();
+  try {
+    const res = await fetch("/route/classes/all", { method: "GET" });
+    const data = await res.json();
 
-        if (!data || !data.classes) return
+    if (!data || !data.classes) return
 
-        classSelect.innerHTML = '<option>Select Class</option>';
-        data.classes.forEach(cls => {
-            const option = document.createElement("option");
-            option.value = cls.id; // or cls.name depending on your API
-            option.textContent = cls.class_name;
-            classSelect.appendChild(option);
-        });
-    } catch (error) {
-        console.error("Error fetching classes:", error);
-        classSelect.innerHTML = '<option>Error loading classes</option>';
-    }
+    classSelect.innerHTML = '<option>Select Class</option>';
+    data.classes.forEach(cls => {
+      const option = document.createElement("option");
+      option.value = cls.id; // or cls.name depending on your API
+      option.textContent = cls.class_name;
+      classSelect.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Error fetching classes:", error);
+    classSelect.innerHTML = '<option>Error loading classes</option>';
+  }
 }
 
 function createLoader() {
-    if (document.getElementById("common-loader")) return;
+  if (document.getElementById("common-loader")) return;
 
-    const loader = document.createElement("div");
-    loader.id = "common-loader";
-    loader.style.display = "none";
-    loader.innerHTML = `
+  const loader = document.createElement("div");
+  loader.id = "common-loader";
+  loader.style.display = "none";
+  loader.innerHTML = `
       <div class="loader-overlay">
         <div class="loader-spinner"></div>
       </div>
     `;
-    document.body.appendChild(loader);
+  document.body.appendChild(loader);
 
-    const style = document.createElement("style");
-    style.id = "loader-styles";
-    style.innerHTML = `
+  const style = document.createElement("style");
+  style.id = "loader-styles";
+  style.innerHTML = `
       .loader-overlay {
         position: fixed;
         top: 0;
@@ -396,16 +358,16 @@ function createLoader() {
         }
       }
     `;
-    document.head.appendChild(style);
+  document.head.appendChild(style);
 }
 
 function showLoader() {
-    const loader = document.getElementById("common-loader");
-    if (loader) loader.style.display = "flex";
+  const loader = document.getElementById("common-loader");
+  if (loader) loader.style.display = "flex";
 }
 
 // Hide loader
 function hideLoader() {
-    const loader = document.getElementById("common-loader");
-    if (loader) loader.style.display = "none";
+  const loader = document.getElementById("common-loader");
+  if (loader) loader.style.display = "none";
 }

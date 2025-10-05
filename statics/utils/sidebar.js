@@ -49,11 +49,11 @@ export const renderLoginPage = (container) => {
             }
     
             const data = await response.json();
-            console.log("Login success:", data);
             alert("Login successful!");
     
             // Optionally, save user to localStorage
-            localStorage.setItem("currentUser", JSON.stringify(data.user));
+            localStorage.setItem("currentUser", JSON.stringify(data.user))
+            document.getElementById("dashboard").click()
     
             // Then render dashboard or reload content
         } catch (err) {
